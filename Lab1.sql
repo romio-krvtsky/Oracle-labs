@@ -36,4 +36,21 @@ BEGIN
 end even_more;
 
 
+CREATE OR REPLACE FUNCTION get_insert(curr_id NUMBER) RETURN CHAR IS
+    curr_val NUMBER;
+BEGIN
+    SELECT val
+    INTO curr_val
+    FROM MyTable
+    WHERE id = curr_id;
+
+    RETURN 'INSERT INTO MyTable VALUES(' || TO_CHAR(curr_id) || ',' || TO_CHAR(curr_val) || ');';
+EXCEPTION
+    WHEN NO_DATA_FOUND
+        THEN DBMS_OUTPUT.PUT_LINE(TO_CHAR(curr_id) || 'is invalid!');
+end get_insert;
+
+
+
+
 
