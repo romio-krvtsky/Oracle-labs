@@ -1,3 +1,5 @@
+SET SERVEROUTPUT ON;
+
 CREATE TABLE MyTable
 (
     id  NUMBER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
@@ -51,6 +53,40 @@ EXCEPTION
 end get_insert;
 
 
+CREATE OR REPLACE PROCEDURE my_insert(curr_val NUMBER) IS
+BEGIN
+    INSERT INTO MyTable(val) VALUES (curr_val);
+end my_insert;
 
 
+CREATE OR REPLACE PROCEDURE my_delete(curr_id NUMBER) IS
+BEGIN
+    DELETE
+    FROM MyTable
+    WHERE id = curr_id;
+end my_delete;
 
+CREATE OR REPLACE PROCEDURE my_update(curr_id NUMBER, new_value NUMBER) IS
+BEGIN
+    UPDATE MyTable
+    SET val = new_value
+    WHERE id = curr_id;
+end my_update;
+
+
+CREATE OR REPLACE FUNCTION reward(salary REAL, premium POSITIVE) RETURN REAL IS
+    prem_ex EXCEPTION;
+    sal_ex EXCEPTION;
+BEGIN
+    IF premium > 100 THEN
+        RAISE prem_ex;
+    ELSIF salary < 0 THEN
+        RAISE sal_ex;
+    END IF;
+    RETURN (100 + premium) * 0.12 * salary;
+EXCEPTION
+    WHEN prem_ex THEN
+        DBMS_OUTPUT.PUT_LINE('Premium > 100!');
+    WHEN sal_ex THEN
+        DBMS_OUTPUT.PUT_LINE('Salary < 0');
+end reward;
