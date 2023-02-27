@@ -1,5 +1,3 @@
-SET SERVEROUTPUT ON;
-
 CREATE TABLE MyTable
 (
     id  NUMBER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1),
@@ -7,12 +5,16 @@ CREATE TABLE MyTable
     CONSTRAINT id_unq UNIQUE (id)
 );
 
+DROP table MyTable;
+
 BEGIN
-    FOR i IN 1..10000
+    FOR i IN 1..10
         LOOP
             INSERT INTO MyTable (val) VALUES (DBMS_RANDOM.RANDOM);
         end loop;
 end;
+
+SELECT * FROM MyTable;
 
 CREATE OR REPLACE FUNCTION even_more RETURN CHAR IS
     even_count NUMBER := 0;
@@ -38,6 +40,9 @@ BEGIN
 end even_more;
 
 
+SELECT even_more() FROM DUAL;
+
+
 CREATE OR REPLACE FUNCTION get_insert(curr_id NUMBER) RETURN CHAR IS
     curr_val NUMBER;
 BEGIN
@@ -50,7 +55,11 @@ BEGIN
 EXCEPTION
     WHEN NO_DATA_FOUND
         THEN DBMS_OUTPUT.PUT_LINE(TO_CHAR(curr_id) || 'is invalid!');
+        RETURN 'error';
 end get_insert;
+
+
+SELECT get_insert(-100) FROM dual;
 
 
 CREATE OR REPLACE PROCEDURE my_insert(curr_val NUMBER) IS
@@ -74,6 +83,7 @@ BEGIN
 end my_update;
 
 
+
 CREATE OR REPLACE FUNCTION reward(salary REAL, premium POSITIVE) RETURN REAL IS
     prem_ex EXCEPTION;
     sal_ex EXCEPTION;
@@ -87,6 +97,10 @@ BEGIN
 EXCEPTION
     WHEN prem_ex THEN
         DBMS_OUTPUT.PUT_LINE('Premium > 100!');
+        RETURN 0;
     WHEN sal_ex THEN
         DBMS_OUTPUT.PUT_LINE('Salary < 0');
+        RETURN 0;
 end reward;
+
+
