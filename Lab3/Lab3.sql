@@ -21,8 +21,7 @@ BEGIN
             WHERE OWNER = prod_schema_name
               AND table_name = tab_diff.table_name;
 
-            IF
-                diff_counter1 > 0 THEN
+            IF diff_counter1 > 0 THEN
                 FOR col_diff IN
                     (SELECT DISTINCT column_name, data_type
                      FROM all_tab_columns
@@ -37,6 +36,49 @@ BEGIN
             ELSE
                 DBMS_OUTPUT.PUT_LINE('CREATE TABLE ' || prod_schema_name || '.' || tab_diff.table_name ||
                                      ' AS (SELECT * FROM ' || tab_diff.table_name || ' WHERE 1=0);');
+            END IF;
+        END LOOP;
+
+    -- delete tables or drop columns in prod
+    FOR tab_diff IN
+        (SELECT DISTINCT table_name
+         FROM all_tab_columns
+         WHERE OWNER = prod_schema_name
+           AND (table_name, column_name) NOT IN
+               (SELECT table_name, column_name FROM all_tab_columns WHERE OWNER = dev_schema_name))
+        LOOP
+            diff_counter1 := 0;
+            diff_counter2
+                := 0;
+            SELECT COUNT(column_name)
+            INTO diff_counter1
+            FROM all_tab_columns
+            WHERE OWNER = prod_schema_name
+              AND table_name = tab_diff.table_name;
+            SELECT COUNT(column_name)
+            INTO diff_counter2
+            FROM all_tab_columns
+            WHERE OWNER = dev_schema_name
+              AND table_name = tab_diff.table_name;
+
+            IF
+                diff_counter1 != diff_counter2 THEN
+                FOR col_diff IN
+                    (SELECT column_name
+                     FROM all_tab_columns
+                     WHERE OWNER = prod_schema_name
+                       AND table_name = tab_diff.table_name
+                       AND column_name NOT IN (SELECT column_name
+                                               FROM all_tab_columns
+                                               WHERE OWNER = dev_schema_name
+                                                 AND table_name = tab_diff.table_name))
+                    LOOP
+                        DBMS_OUTPUT.PUT_LINE('ALTER TABLE ' || prod_schema_name || '.' || tab_diff.table_name ||
+                                             ' DROP COLUMN ' || col_diff.column_name || ';');
+                    END LOOP;
+            ELSE
+                DBMS_OUTPUT.PUT_LINE('DROP TABLE ' || prod_schema_name || '.' || tab_diff.table_name ||
+                                     ' CASCADE CONSTRAINTS;');
             END IF;
         END LOOP;
 
