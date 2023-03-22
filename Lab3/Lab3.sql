@@ -111,6 +111,17 @@ BEGIN
                 END LOOP;
         END LOOP;
 
+    -- delete procedure in prod
+    FOR diff_proc IN
+        (SELECT DISTINCT object_name
+         FROM all_objects
+         WHERE object_type = 'PROCEDURE'
+           AND OWNER = prod_schema_name
+           AND object_name NOT IN
+               (SELECT object_name FROM all_objects WHERE OWNER = dev_schema_name AND object_type = 'PROCEDURE'))
+        LOOP
+            DBMS_OUTPUT.PUT_LINE('DROP PROCEDURE ' || prod_schema_name || '.' || diff_proc.object_name);
+        END LOOP;
 
 
 END;
