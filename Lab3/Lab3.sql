@@ -83,5 +83,35 @@ BEGIN
         END LOOP;
 
 
+    -- create procedure from dev in prod
+    FOR diff_proc IN
+        (SELECT DISTINCT object_name
+         FROM all_objects
+         WHERE object_type = 'PROCEDURE'
+           AND OWNER = dev_schema_name
+           AND object_name NOT IN
+               (SELECT object_name FROM all_objects WHERE OWNER = prod_schema_name AND object_type = 'PROCEDURE'))
+        LOOP
+            diff_counter1 := 0;
+            DBMS_OUTPUT.PUT_LINE
+                ('CREATE OR REPLACE ');
+            FOR text_line IN (SELECT text
+                              FROM all_source
+                              WHERE type = 'PROCEDURE'
+                                AND NAME = diff_proc.object_name
+                                AND OWNER = dev_schema_name)
+                LOOP
+                    IF diff_counter1 != 0 THEN
+                        DBMS_OUTPUT.PUT_LINE(rtrim(text_line.text, chr(10) || chr(13)));
+                    ELSE
+                        DBMS_OUTPUT.PUT_LINE(rtrim(prod_schema_name || '.' || text_line.text, chr(10) || chr(13)));
+                        diff_counter1
+                            := 1;
+                    END IF;
+                END LOOP;
+        END LOOP;
+
+
+
 END;
 
