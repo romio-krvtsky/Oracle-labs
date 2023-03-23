@@ -164,6 +164,38 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('DROP FUNCTION ' || prod_schema_name || '.' || diff_func.object_name);
         END LOOP;
 
+    -- create indexes from dev in prod
+    FOR diff_ind IN
+        (SELECT index_name, index_type, table_name
+         FROM all_indexes
+         WHERE table_owner = dev_schema_name
+           AND index_name not like '%_PK'
+           AND index_name NOT IN
+               (SELECT index_name FROM all_indexes WHERE table_owner = prod_schema_name AND index_name NOT LIKE '%_PK'))
+        LOOP
+            SELECT column_name
+            INTO code
+            FROM all_ind_columns
+            WHERE index_name = diff_ind.index_name
+              and table_owner = dev_schema_name;
+            DBMS_OUTPUT
+                .
+                PUT_LINE
+                ('CREATE ' || diff_ind.index_type || ' INDEX ' || diff_ind.index_name || ' ON ' || prod_schema_name ||
+                 '.' || diff_ind.table_name || '(' || code || ');');
+        END LOOP;
+
+    -- delete indexes in prod
+    FOR diff_ind IN
+        (SELECT index_name
+         FROM all_indexes
+         WHERE table_owner = prod_schema_name
+           AND index_name NOT LIKE '%_PK'
+           AND index_name NOT IN
+               (SELECT index_name FROM all_indexes WHERE table_owner = dev_schema_name AND index_name NOT LIKE '%_PK'))
+        LOOP
+            DBMS_OUTPUT.PUT_LINE('DROP INDEX ' || diff_ind.index_name || ';');
+        END LOOP;
 
 END;
 
