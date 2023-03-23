@@ -152,6 +152,18 @@ BEGIN
                 END LOOP;
         END LOOP;
 
+    -- delete functions in prod
+    FOR diff_func IN
+        (SELECT DISTINCT object_name
+         FROM all_objects
+         WHERE object_type = 'FUNCTION'
+           AND OWNER = prod_schema_name
+           AND object_name NOT IN
+               (SELECT object_name FROM all_objects WHERE OWNER = dev_schema_name AND object_type = 'FUNCTION'))
+        LOOP
+            DBMS_OUTPUT.PUT_LINE('DROP FUNCTION ' || prod_schema_name || '.' || diff_func.object_name);
+        END LOOP;
+
 
 END;
 
