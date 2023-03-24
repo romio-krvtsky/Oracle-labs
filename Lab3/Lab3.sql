@@ -199,3 +199,48 @@ BEGIN
 
 END;
 
+
+create or replace PROCEDURE TABLES_ORDER(schema_name varchar2) AS
+
+BEGIN
+    EXECUTE IMMEDIATE 'TRUNCATE TABLE fk_tmp';
+
+    FOR table_item IN
+        (SELECT table_name AS name
+         FROM all_tables
+         WHERE OWNER = schema_name)
+        LOOP
+
+            INSERT INTO fk_tmp (child_obj, parent_obj)
+            SELECT DISTINCT a.table_name, c_pk.table_name
+            FROM all_cons_columns a
+                     JOIN all_constraints c ON
+                a.OWNER = c.OWNER AND a.constraint_name = c.constraint_name
+                     JOIN all_constraints c_pk ON
+                c.r_owner = c_pk.owner AND c.r_constraint_name = c_pk.constraint_name
+            WHERE c.constraint_type = 'R'
+              AND a.table_name = table_item.name;
+
+            IF
+                SQL%ROWCOUNT = 0 THEN
+                dbms_output.put_line(table_item.name);
+            END IF;
+
+        END LOOP;
+
+    FOR ref_fk IN
+        (SELECT child_obj, parent_obj, CONNECT_BY_ISCYCLE
+         FROM fk_tmp
+         CONNECT BY NOCYCLE PRIOR PARENT_OBJ = child_obj
+         ORDER BY LEVEL
+        )
+        LOOP
+            IF ref_fk.CONNECT_BY_ISCYCLE = 0 THEN
+                dbms_output.put_line(ref_fk.child_obj);
+            ELSE
+                dbms_output.put_line('CYCLE IN TABLE' || ref_fk.child_obj);
+            END IF;
+        END LOOP;
+
+end TABLES_ORDER;
+
