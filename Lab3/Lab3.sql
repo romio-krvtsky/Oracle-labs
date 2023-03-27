@@ -1,3 +1,11 @@
+CREATE TABLE fk_tmp
+(
+    ID         INT,
+    CHILD_OBJ  VARCHAR2(100),
+    PARENT_OBJ VARCHAR2(100)
+);
+
+
 create or replace PROCEDURE COMPARE_SCHEMA(dev_schema_name VARCHAR2, prod_schema_name VARCHAR2)
     IS
     diff_counter1 NUMBER;
@@ -5,6 +13,7 @@ create or replace PROCEDURE COMPARE_SCHEMA(dev_schema_name VARCHAR2, prod_schema
     code          VARCHAR2(100);
 BEGIN
 
+    DBMS_OUTPUT.PUT_LINE('hello from proceduro4ka');
     -- create tables or add columns from dev in prod
     FOR tab_diff IN
         (SELECT DISTINCT table_name
@@ -21,7 +30,8 @@ BEGIN
             WHERE OWNER = prod_schema_name
               AND table_name = tab_diff.table_name;
 
-            IF diff_counter1 > 0 THEN
+            IF
+                diff_counter1 > 0 THEN
                 FOR col_diff IN
                     (SELECT DISTINCT column_name, data_type
                      FROM all_tab_columns
@@ -48,8 +58,7 @@ BEGIN
                (SELECT table_name, column_name FROM all_tab_columns WHERE OWNER = dev_schema_name))
         LOOP
             diff_counter1 := 0;
-            diff_counter2
-                := 0;
+            diff_counter2 := 0;
             SELECT COUNT(column_name)
             INTO diff_counter1
             FROM all_tab_columns
@@ -82,8 +91,7 @@ BEGIN
             END IF;
         END LOOP;
 
-
-    -- create procedure from dev in prod
+-- create procedure from dev in prod
     FOR diff_proc IN
         (SELECT DISTINCT object_name
          FROM all_objects
@@ -105,13 +113,12 @@ BEGIN
                         DBMS_OUTPUT.PUT_LINE(rtrim(text_line.text, chr(10) || chr(13)));
                     ELSE
                         DBMS_OUTPUT.PUT_LINE(rtrim(prod_schema_name || '.' || text_line.text, chr(10) || chr(13)));
-                        diff_counter1
-                            := 1;
+                        diff_counter1 := 1;
                     END IF;
                 END LOOP;
         END LOOP;
 
-    -- delete procedure in prod
+-- delete procedure in prod
     FOR diff_proc IN
         (SELECT DISTINCT object_name
          FROM all_objects
@@ -123,8 +130,7 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('DROP PROCEDURE ' || prod_schema_name || '.' || diff_proc.object_name);
         END LOOP;
 
-
-    -- create functions from dev in prod
+-- create functions from dev in prod
     FOR diff_func IN
         (SELECT DISTINCT object_name
          FROM all_objects
@@ -152,7 +158,7 @@ BEGIN
                 END LOOP;
         END LOOP;
 
-    -- delete functions in prod
+-- delete functions in prod
     FOR diff_func IN
         (SELECT DISTINCT object_name
          FROM all_objects
@@ -164,12 +170,13 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('DROP FUNCTION ' || prod_schema_name || '.' || diff_func.object_name);
         END LOOP;
 
-    -- create indexes from dev in prod
+-- create indexes from dev in prod
     FOR diff_ind IN
         (SELECT index_name, index_type, table_name
          FROM all_indexes
          WHERE table_owner = dev_schema_name
            AND index_name not like '%_PK'
+           AND index_name not like '%SYS%'
            AND index_name NOT IN
                (SELECT index_name FROM all_indexes WHERE table_owner = prod_schema_name AND index_name NOT LIKE '%_PK'))
         LOOP
@@ -178,19 +185,17 @@ BEGIN
             FROM all_ind_columns
             WHERE index_name = diff_ind.index_name
               and table_owner = dev_schema_name;
-            DBMS_OUTPUT
-                .
-                PUT_LINE
-                ('CREATE ' || diff_ind.index_type || ' INDEX ' || diff_ind.index_name || ' ON ' || prod_schema_name ||
-                 '.' || diff_ind.table_name || '(' || code || ');');
+            DBMS_OUTPUT.PUT_LINE('CREATE ' || diff_ind.index_type || ' INDEX ' || diff_ind.index_name || ' ON ' ||
+                                 prod_schema_name || '.' || diff_ind.table_name || '(' || code || ');');
         END LOOP;
 
-    -- delete indexes in prod
+-- delete indexes in prod
     FOR diff_ind IN
         (SELECT index_name
          FROM all_indexes
          WHERE table_owner = prod_schema_name
            AND index_name NOT LIKE '%_PK'
+           AND index_name NOT LIKE 'SYS%'
            AND index_name NOT IN
                (SELECT index_name FROM all_indexes WHERE table_owner = dev_schema_name AND index_name NOT LIKE '%_PK'))
         LOOP
@@ -210,7 +215,6 @@ BEGIN
          FROM all_tables
          WHERE OWNER = schema_name)
         LOOP
-
             INSERT INTO fk_tmp (child_obj, parent_obj)
             SELECT DISTINCT a.table_name, c_pk.table_name
             FROM all_cons_columns a
@@ -243,4 +247,121 @@ BEGIN
         END LOOP;
 
 end TABLES_ORDER;
+
+
+---- giving privileges
+
+CREATE USER C##DEV IDENTIFIED BY 123;
+GRANT ALL PRIVILEGES TO C##DEV;
+
+CREATE USER C##PROD IDENTIFIED BY 123;
+GRANT ALL PRIVILEGES TO C##PROD;
+
+GRANT CONNECT TO C##DEV;
+
+GRANT CONNECT TO C##PROD;
+
+GRANT RESOURCE TO C##DEV;
+
+GRANT RESOURCE TO C##PROD;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON C##DEV.* TO C##WORK;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON C##PROD.* TO C##WORK;
+
+GRANT ALL PRIVILEGES TO C##WORK;
+
+
+-------------- DEV --------------
+
+-- Example of a simple procedure in Oracle
+CREATE OR REPLACE PROCEDURE print_message(message IN VARCHAR2)
+AS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE(message);
+END;
+
+
+-- Example of a simple function in Oracle
+CREATE OR REPLACE FUNCTION calculate_area(length IN NUMBER, width IN NUMBER)
+    RETURN NUMBER
+    IS
+BEGIN
+    RETURN length * width;
+END;
+
+
+CREATE TABLE table_a
+(
+    id         NUMBER(10) PRIMARY KEY,
+    name       VARCHAR2(50),
+    table_b_id NUMBER(10),
+    CONSTRAINT fk_table_b_id FOREIGN KEY (table_b_id) REFERENCES table_b (id)
+);
+
+CREATE TABLE table_b
+(
+    id         NUMBER(10) PRIMARY KEY,
+    name       VARCHAR2(50),
+    table_c_id NUMBER(10),
+    CONSTRAINT fk_table_c_id FOREIGN KEY (table_c_id) REFERENCES table_c (id)
+);
+
+CREATE TABLE table_c
+(
+    id         NUMBER(10) PRIMARY KEY,
+    name       VARCHAR2(50),
+    table_a_id NUMBER(10)
+--    CONSTRAINT fk_table_a_id FOREIGN KEY (table_a_id) REFERENCES table_a(id)
+);
+
+ALTER TABLE TABLE_C
+    ADD
+        CONSTRAINT fk_table_a_id FOREIGN KEY (table_a_id) REFERENCES table_a (id)
+            ON DELETE CASCADE;
+
+
+CREATE INDEX FirstIndex
+    ON A (data);
+
+
+-------------- PROD --------------
+
+CREATE TABLE C
+(
+    id   NUMBER(10) PRIMARY KEY,
+    name VARCHAR2(50)
+);
+
+CREATE TABLE B
+(
+    id NUMBER(10) PRIMARY KEY
+);
+
+
+------- checking
+
+begin
+    for o in (select * from dba_tables where owner = 'C##PROD')
+        loop
+            execute immediate 'grant select on "' || o.owner || '"."' || o.table_name || '" to C##WORK';
+        end loop;
+    for o in (select * from dba_tables where owner = 'C##DEV')
+        loop
+            execute immediate 'grant select on "' || o.owner || '"."' || o.table_name || '" to C##WORK';
+        end loop;
+
+
+end;
+
+ALTER USER C##WORK quota unlimited ON USERS;
+
+
+CALL COMPARE_SCHEMA('C##DEV', 'C##PROD');
+CALL COMPARE_SCHEMA('C##PROD', 'C##DEV');
+
+CALL TABLES_ORDER('C##DEV')
+
+
+
 
