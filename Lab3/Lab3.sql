@@ -12,8 +12,6 @@ create or replace PROCEDURE COMPARE_SCHEMA(dev_schema_name VARCHAR2, prod_schema
     diff_counter2 NUMBER;
     code          VARCHAR2(100);
 BEGIN
-
-    DBMS_OUTPUT.PUT_LINE('hello from proceduro4ka');
     -- create tables or add columns from dev in prod
     FOR tab_diff IN
         (SELECT DISTINCT table_name
@@ -91,7 +89,7 @@ BEGIN
             END IF;
         END LOOP;
 
--- create procedure from dev in prod
+    -- create procedure from dev in prod
     FOR diff_proc IN
         (SELECT DISTINCT object_name
          FROM all_objects
@@ -118,7 +116,7 @@ BEGIN
                 END LOOP;
         END LOOP;
 
--- delete procedure in prod
+    -- delete procedure in prod
     FOR diff_proc IN
         (SELECT DISTINCT object_name
          FROM all_objects
@@ -130,7 +128,7 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('DROP PROCEDURE ' || prod_schema_name || '.' || diff_proc.object_name);
         END LOOP;
 
--- create functions from dev in prod
+    -- create functions from dev in prod
     FOR diff_func IN
         (SELECT DISTINCT object_name
          FROM all_objects
@@ -158,7 +156,7 @@ BEGIN
                 END LOOP;
         END LOOP;
 
--- delete functions in prod
+    -- delete functions in prod
     FOR diff_func IN
         (SELECT DISTINCT object_name
          FROM all_objects
@@ -170,7 +168,7 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('DROP FUNCTION ' || prod_schema_name || '.' || diff_func.object_name);
         END LOOP;
 
--- create indexes from dev in prod
+    -- create indexes from dev in prod
     FOR diff_ind IN
         (SELECT index_name, index_type, table_name
          FROM all_indexes
@@ -185,11 +183,11 @@ BEGIN
             FROM all_ind_columns
             WHERE index_name = diff_ind.index_name
               and table_owner = dev_schema_name;
-            DBMS_OUTPUT.PUT_LINE('CREATE ' || diff_ind.index_type || ' INDEX ' || diff_ind.index_name || ' ON ' ||
+            DBMS_OUTPUT.PUT_LINE('CREATE INDEX ' || diff_ind.index_name || ' ON ' ||
                                  prod_schema_name || '.' || diff_ind.table_name || '(' || code || ');');
         END LOOP;
 
--- delete indexes in prod
+    -- delete indexes in prod
     FOR diff_ind IN
         (SELECT index_name
          FROM all_indexes
@@ -201,7 +199,6 @@ BEGIN
         LOOP
             DBMS_OUTPUT.PUT_LINE('DROP INDEX ' || diff_ind.index_name || ';');
         END LOOP;
-
 END;
 
 
@@ -291,38 +288,33 @@ BEGIN
 END;
 
 
-CREATE TABLE table_a
+CREATE TABLE table_1
 (
     id         NUMBER(10) PRIMARY KEY,
     name       VARCHAR2(50),
-    table_b_id NUMBER(10),
-    CONSTRAINT fk_table_b_id FOREIGN KEY (table_b_id) REFERENCES table_b (id)
+    table_2_id NUMBER(10),
+    CONSTRAINT fk_table_2_id FOREIGN KEY (table_2_id) REFERENCES table_2 (id)
 );
 
-CREATE TABLE table_b
+CREATE TABLE table_2
 (
     id         NUMBER(10) PRIMARY KEY,
     name       VARCHAR2(50),
-    table_c_id NUMBER(10),
-    CONSTRAINT fk_table_c_id FOREIGN KEY (table_c_id) REFERENCES table_c (id)
+    table_3_id NUMBER(10),
+    CONSTRAINT fk_table_3_id FOREIGN KEY (table_3_id) REFERENCES table_3 (id)
 );
 
-CREATE TABLE table_c
+CREATE TABLE table_3
 (
     id         NUMBER(10) PRIMARY KEY,
     name       VARCHAR2(50),
-    table_a_id NUMBER(10)
---    CONSTRAINT fk_table_a_id FOREIGN KEY (table_a_id) REFERENCES table_a(id)
+    table_1_id NUMBER(10)
 );
 
-ALTER TABLE TABLE_C
-    ADD
-        CONSTRAINT fk_table_a_id FOREIGN KEY (table_a_id) REFERENCES table_a (id)
-            ON DELETE CASCADE;
 
-
-CREATE INDEX FirstIndex
-    ON A (data);
+ALTER TABLE table_3
+    ADD CONSTRAINT fk_table_a_id FOREIGN KEY (table_1_id) REFERENCES table_1 (id)
+        ON DELETE CASCADE;
 
 
 -------------- PROD --------------
@@ -341,27 +333,8 @@ CREATE TABLE B
 
 ------- checking
 
-begin
-    for o in (select * from dba_tables where owner = 'C##PROD')
-        loop
-            execute immediate 'grant select on "' || o.owner || '"."' || o.table_name || '" to C##WORK';
-        end loop;
-    for o in (select * from dba_tables where owner = 'C##DEV')
-        loop
-            execute immediate 'grant select on "' || o.owner || '"."' || o.table_name || '" to C##WORK';
-        end loop;
-
-
-end;
-
-ALTER USER C##WORK quota unlimited ON USERS;
-
 
 CALL COMPARE_SCHEMA('C##DEV', 'C##PROD');
 CALL COMPARE_SCHEMA('C##PROD', 'C##DEV');
 
-CALL TABLES_ORDER('C##DEV')
-
-
-
-
+CALL TABLES_ORDER('C##DEV');
