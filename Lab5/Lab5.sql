@@ -322,3 +322,362 @@ CREATE UNIQUE INDEX "STUDENTS_PK" ON "STUDENTS" ("ID") PCTFREE 10 INITRANS 2 MAX
     PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
     BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
     TABLESPACE "USERS";
+
+--------------------------------------------------------
+--  DDL for Trigger CHECK_STUDENTS_COUNT
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "CHECK_STUDENTS_COUNT"
+    AFTER DELETE OR INSERT OR UPDATE
+    ON students
+    FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        UPDATE groups
+        SET c_val = c_val + 1
+        WHERE id = :new.group_id;
+    ELSIF DELETING THEN
+        UPDATE groups
+        SET c_val = c_val - 1
+        WHERE id = :old.group_id;
+    ELSE
+        UPDATE groups
+        SET c_val = c_val - 1
+        WHERE id = :old.group_id;
+
+        UPDATE groups
+        SET c_val = c_val + 1
+        WHERE id = :new.group_id;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END;
+/
+ALTER TRIGGER "CHECK_STUDENTS_COUNT" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger CHECK_UNIQUE_GROUPS_ID
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "CHECK_UNIQUE_GROUPS_ID"
+    BEFORE INSERT OR UPDATE
+    ON "GROUPS"
+    FOR EACH ROW
+DECLARE
+    x NUMBER;
+    txt EXCEPTION;
+BEGIN
+    SELECT COUNT(*) INTO x FROM GROUPS WHERE GROUPS.id = :NEW.id;
+    IF x > 0 THEN
+        RAISE txt;
+    END IF;
+EXCEPTION
+    WHEN txt THEN RAISE_APPLICATION_ERROR(-20001, 'This id exists in table groups!');
+    WHEN OTHERS THEN NULL;
+END;
+/
+ALTER TRIGGER "CHECK_UNIQUE_GROUPS_ID" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger CHECK_UNIQUE_GROUPS_NAME
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "CHECK_UNIQUE_GROUPS_NAME"
+    BEFORE INSERT OR UPDATE
+    ON "GROUPS"
+    FOR EACH ROW
+DECLARE
+    x NUMBER;
+    txt EXCEPTION;
+BEGIN
+    SELECT COUNT(*) INTO x FROM GROUPS WHERE GROUPS.name = :NEW.name;
+    IF x > 0 THEN
+        RAISE txt;
+    END IF;
+EXCEPTION
+    WHEN txt THEN RAISE_APPLICATION_ERROR(-20001, 'This name exists in table groups!');
+    WHEN OTHERS THEN NULL;
+END;
+/
+ALTER TRIGGER "CHECK_UNIQUE_GROUPS_NAME" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger CHECK_UNIQUE_STUDENTS_ID
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "CHECK_UNIQUE_STUDENTS_ID"
+    BEFORE INSERT OR UPDATE
+    ON "STUDENTS"
+    FOR EACH ROW
+DECLARE
+    x NUMBER;
+    txt EXCEPTION;
+BEGIN
+    SELECT COUNT(*) INTO x FROM STUDENTS WHERE students.id = :NEW.id;
+    IF x > 0 THEN
+        RAISE txt;
+    END IF;
+EXCEPTION
+    WHEN txt THEN RAISE_APPLICATION_ERROR(-20001, 'This id exists in table STUDENTS!');
+    WHEN OTHERS THEN NULL;
+END;
+/
+ALTER TRIGGER "CHECK_UNIQUE_STUDENTS_ID" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger FOREIGN_KEY_GROUP_ID
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "FOREIGN_KEY_GROUP_ID"
+    before INSERT OR UPDATE
+    on STUDENTS
+    for
+        each row
+DECLARE
+    counter NUMBER;
+    txt EXCEPTION;
+begin
+    SELECT count(*) INTO counter FROM groups WHERE :new.group_id = groups.id;
+    IF counter = 0 then
+        RAISE txt;
+    END IF;
+EXCEPTION
+    WHEN txt THEN RAISE_APPLICATION_ERROR(-20001, 'No such group_id in table GROUPS!');
+    WHEN OTHERS THEN NULL;
+end;
+/
+ALTER TRIGGER "FOREIGN_KEY_GROUP_ID" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger GROUPS_LOGS_TRG
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "GROUPS_LOGS_TRG"
+    BEFORE INSERT
+    ON GROUPS_LOGS
+    FOR EACH ROW
+BEGIN
+    <<COLUMN_SEQUENCES>>
+    BEGIN
+        IF INSERTING AND :NEW.ID IS NULL THEN
+            SELECT GROUPS_LOGS_SEQ.NEXTVAL INTO :NEW.ID FROM SYS.DUAL;
+        END IF;
+    END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "GROUPS_LOGS_TRG" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger GROUPS_LOGS_TRIGGER
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "GROUPS_LOGS_TRIGGER"
+    AFTER INSERT OR DELETE OR UPDATE
+    ON GROUPS
+    FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        INSERT INTO GROUPS_LOGS (operation, newid, newname, new_c_val)
+        VALUES ('INSERT', :NEW.id, :NEW.name, :NEW.c_val);
+    ELSIF DELETING THEN
+        INSERT INTO GROUPS_LOGS (operation, oldid, oldname, old_c_val)
+        VALUES ('DELETE', :OLD.id, :OLD.name, :OLD.c_val);
+    ELSIF UPDATING THEN
+        INSERT INTO GROUPS_LOGS (operation, oldid, oldname, old_c_val, newid, newname, new_c_val)
+        VALUES ('UPDATE', :OLD.id, :OLD.name, :OLD.c_val, :NEW.id, :NEW.name, :NEW.c_val);
+    END IF;
+END;
+/
+ALTER TRIGGER "GROUPS_LOGS_TRIGGER" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger GROUPS_TRG
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "GROUPS_TRG"
+    BEFORE INSERT
+    ON GROUPS
+    FOR EACH ROW
+BEGIN
+    <<COLUMN_SEQUENCES>>
+    BEGIN
+        NULL;
+    END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "GROUPS_TRG" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger GROUPS_TRG1
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "GROUPS_TRG1"
+    BEFORE INSERT
+    ON GROUPS
+    FOR EACH ROW
+BEGIN
+    <<COLUMN_SEQUENCES>>
+    BEGIN
+        IF INSERTING AND :NEW.ID IS NULL THEN
+            SELECT GROUPS_SEQ2.NEXTVAL INTO :NEW.ID FROM SYS.DUAL;
+        END IF;
+    END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "GROUPS_TRG1" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger MYTABLE_LOGS_TRG
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "MYTABLE_LOGS_TRG"
+    BEFORE INSERT
+    ON MYTABLE_LOGS
+    FOR EACH ROW
+BEGIN
+    <<COLUMN_SEQUENCES>>
+    BEGIN
+        IF INSERTING AND :NEW.ID IS NULL THEN
+            SELECT MYTABLE_LOGS_SEQ.NEXTVAL INTO :NEW.ID FROM SYS.DUAL;
+        END IF;
+    END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "MYTABLE_LOGS_TRG" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger MYTABLE_LOGS_TRIGGER
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "MYTABLE_LOGS_TRIGGER"
+    AFTER INSERT OR DELETE OR UPDATE
+    ON MYTABLE
+    FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        INSERT INTO mytable_logs (operation, newid, newval, newname)
+        VALUES ('INSERT', :NEW.id, :NEW.val, :NEW.name);
+    ELSIF DELETING THEN
+        INSERT INTO mytable_logs (operation, oldid, oldval, oldname)
+        VALUES ('DELETE', :OLD.id, :OLD.val, :OLD.name);
+    ELSIF UPDATING THEN
+        INSERT INTO mytable_logs (operation, oldid, oldval, oldname, newid, newval, newname)
+        VALUES ('UPDATE', :OLD.id, :OLD.val, :OLD.name, :NEW.id, :NEW.val, :NEW.name);
+    END IF;
+END;
+/
+ALTER TRIGGER "MYTABLE_LOGS_TRIGGER" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger MYTABLE_TRG
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "MYTABLE_TRG"
+    BEFORE INSERT
+    ON MYTABLE
+    FOR EACH ROW
+BEGIN
+    <<COLUMN_SEQUENCES>>
+    BEGIN
+        NULL;
+    END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "MYTABLE_TRG" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger MYTABLE_TRG1
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "MYTABLE_TRG1"
+    BEFORE INSERT
+    ON MYTABLE
+    FOR EACH ROW
+BEGIN
+    <<COLUMN_SEQUENCES>>
+    BEGIN
+        IF INSERTING AND :NEW.ID IS NULL THEN
+            SELECT MYTABLE_SEQ1.NEXTVAL INTO :NEW.ID FROM SYS.DUAL;
+        END IF;
+    END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "MYTABLE_TRG1" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger STUDENTS_LOGS_TRG
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "STUDENTS_LOGS_TRG"
+    BEFORE INSERT
+    ON STUDENTS_LOGS
+    FOR EACH ROW
+BEGIN
+    <<COLUMN_SEQUENCES>>
+    BEGIN
+        IF INSERTING AND :NEW.ID IS NULL THEN
+            SELECT STUDENTS_LOGS_SEQ1.NEXTVAL INTO :NEW.ID FROM SYS.DUAL;
+        END IF;
+    END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "STUDENTS_LOGS_TRG" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger STUDENTS_LOGS_TRIGGER
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "STUDENTS_LOGS_TRIGGER"
+    AFTER INSERT OR DELETE OR UPDATE
+    ON STUDENTS
+    FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        INSERT INTO STUDENTS_LOGS (operation, newId, newName, newgroupid, newtime)
+        VALUES ('INSERT', :NEW.id, :NEW.name, :NEW.group_id, :NEW.date_time);
+    ELSIF DELETING THEN
+        INSERT INTO STUDENTS_LOGS (operation, oldId, oldName, oldgroupid, oldtime)
+        VALUES ('DELETE', :OLD.id, :OLD.name, :OLD.group_id, :OLD.date_time);
+    ELSIF UPDATING THEN
+        INSERT INTO STUDENTS_LOGS (operation, oldId, oldName, oldgroupid, newId, newName, newgroupid, oldtime, newtime)
+        VALUES ('UPDATE', :OLD.id, :OLD.name, :OLD.group_id, :NEW.id, :NEW.name, :NEW.group_id, :OLD.date_time,
+                :NEW.date_time);
+    END IF;
+END;
+/
+ALTER TRIGGER "STUDENTS_LOGS_TRIGGER" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger STUDENTS_TRG
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "STUDENTS_TRG"
+    BEFORE INSERT
+    ON STUDENTS
+    FOR EACH ROW
+BEGIN
+    <<COLUMN_SEQUENCES>>
+    BEGIN
+        NULL;
+    END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "STUDENTS_TRG" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger STUDENTS_TRG1
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "STUDENTS_TRG1"
+    BEFORE INSERT
+    ON STUDENTS
+    FOR EACH ROW
+BEGIN
+    <<COLUMN_SEQUENCES>>
+    BEGIN
+        IF INSERTING AND :NEW.ID IS NULL THEN
+            SELECT STUDENTS_SEQ3.NEXTVAL INTO :NEW.ID FROM SYS.DUAL;
+        END IF;
+    END COLUMN_SEQUENCES;
+END;
+/
+ALTER TRIGGER "STUDENTS_TRG1" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger TRIGG_DELETE_CHILD_STUDENT
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE TRIGGER "TRIGG_DELETE_CHILD_STUDENT"
+    before delete
+    on GROUPS
+    for
+        each row
+begin
+    delete from STUDENTS where group_id = :old.id;
+end;
+/
+ALTER TRIGGER "TRIGG_DELETE_CHILD_STUDENT" ENABLE;
+
