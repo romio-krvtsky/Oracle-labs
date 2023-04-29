@@ -2663,3 +2663,177 @@ CREATE OR REPLACE NONEDITIONABLE PACKAGE BODY "TEST_PKG" IS
 END test_pkg;
 
 /
+
+--------------------------------------------------------
+--  DDL for Function BOOLEAN_TO_CHAR
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE FUNCTION "BOOLEAN_TO_CHAR"(STATUS IN BOOLEAN)
+    RETURN VARCHAR2 IS
+BEGIN
+    RETURN
+        CASE STATUS
+            WHEN TRUE THEN 'TRUE'
+            WHEN FALSE THEN 'FALSE'
+            ELSE 'NULL'
+            END;
+END;
+
+/
+--------------------------------------------------------
+--  DDL for Function EVEN_ODD
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE FUNCTION "EVEN_ODD" RETURN VARCHAR2 AS
+    counter_odd  NUMBER DEFAULT 0;
+    counter_even NUMBER DEFAULT 0;
+    counter      NUMBER DEFAULT 1;
+    rows_number  NUMBER;
+    check_val    NUMBER;
+BEGIN
+
+    LOOP
+        SELECT val INTO check_val FROM (SELECT val, ROWNUM AS RN FROM mytable) WHERE RN = counter;
+        IF MOD(check_val, 2) = 0 THEN
+            counter_even := counter_even + 1;
+        ELSE
+            counter_odd := counter_odd + 1;
+        END IF;
+        counter := counter + 1;
+        EXIT WHEN counter > 10000;
+    END LOOP;
+
+    IF counter_odd > counter_even
+    THEN
+        RETURN 'ODD';
+    ELSIF counter_odd < counter_even
+    THEN
+        RETURN 'EVEN';
+    ELSE
+        RETURN 'EVEN===ODD';
+    END IF;
+
+END;
+
+/
+--------------------------------------------------------
+--  DDL for Function GET_PRIZE
+--------------------------------------------------------
+
+CREATE OR REPLACE NONEDITIONABLE FUNCTION "GET_PRIZE"(sal REAL, perc REAL) RETURN BOOLEAN AS
+    res            REAL;
+    sal_is_number  BOOLEAN;
+    perc_is_number BOOLEAN;
+BEGIN
+    sal_is_number := REGEXP_LIKE(sal, '^[[:digit:]]+$');
+    perc_is_number := REGEXP_LIKE(sal, '^[[:digit:]]+$');
+
+    IF sal_is_number AND perc_is_number THEN
+        IF sal > 0 AND perc > 0 AND perc <= 100 THEN
+            res := (1 + perc / 100) * 12 * sal;
+            dbms_output.put_line('Total prize:  ' || res);
+            RETURN TRUE;
+        ELSE
+            dbms_output.put_line('Check your arguments. Salary and(or) percent are not in valid value range!');
+            RETURN FALSE;
+        END IF;
+    ELSE
+        dbms_output.put_line('Check your arguments. Salary and(or) percent is not a numbers here!');
+        RETURN FALSE;
+    END IF;
+END;
+
+/
+--------------------------------------------------------
+--  Constraints for Table GROUPS_LOGS
+--------------------------------------------------------
+
+ALTER TABLE "GROUPS_LOGS"
+    MODIFY ("ID" NOT NULL ENABLE);
+ALTER TABLE "GROUPS_LOGS"
+    ADD CONSTRAINT "GROUPS_LOGS_PK" PRIMARY KEY ("ID")
+        USING INDEX PCTFREE 10 INITRANS 2 MAXTRANS 255 COMPUTE STATISTICS
+            STORAGE (INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+            PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+            BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+            TABLESPACE "USERS" ENABLE;
+--------------------------------------------------------
+--  Constraints for Table STUDENTS_LOGS
+--------------------------------------------------------
+
+ALTER TABLE "STUDENTS_LOGS"
+    MODIFY ("ID" NOT NULL ENABLE);
+ALTER TABLE "STUDENTS_LOGS"
+    ADD PRIMARY KEY ("ID")
+        USING INDEX PCTFREE 10 INITRANS 2 MAXTRANS 255 COMPUTE STATISTICS
+            STORAGE (INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+            PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+            BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+            TABLESPACE "USERS" ENABLE;
+--------------------------------------------------------
+--  Constraints for Table MYTABLE_LOGS
+--------------------------------------------------------
+
+ALTER TABLE "MYTABLE_LOGS"
+    MODIFY ("ID" NOT NULL ENABLE);
+ALTER TABLE "MYTABLE_LOGS"
+    ADD CONSTRAINT "MYTABLE_LOGS_PK" PRIMARY KEY ("ID")
+        USING INDEX PCTFREE 10 INITRANS 2 MAXTRANS 255 COMPUTE STATISTICS
+            STORAGE (INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+            PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+            BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+            TABLESPACE "USERS" ENABLE;
+--------------------------------------------------------
+--  Constraints for Table STUDENTS
+--------------------------------------------------------
+
+ALTER TABLE "STUDENTS"
+    MODIFY ("ID" NOT NULL ENABLE);
+ALTER TABLE "STUDENTS"
+    ADD CONSTRAINT "STUDENTS_PK" PRIMARY KEY ("ID")
+        USING INDEX PCTFREE 10 INITRANS 2 MAXTRANS 255 COMPUTE STATISTICS
+            STORAGE (INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+            PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+            BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+            TABLESPACE "USERS" ENABLE;
+--------------------------------------------------------
+--  Constraints for Table T1
+--------------------------------------------------------
+
+ALTER TABLE "T1"
+    MODIFY ("C1" NOT NULL ENABLE);
+--------------------------------------------------------
+--  Constraints for Table MYTABLE
+--------------------------------------------------------
+
+ALTER TABLE "MYTABLE"
+    MODIFY ("ID" NOT NULL ENABLE);
+ALTER TABLE "MYTABLE"
+    ADD CONSTRAINT "MYTABLE_PK" PRIMARY KEY ("ID")
+        USING INDEX PCTFREE 10 INITRANS 2 MAXTRANS 255 COMPUTE STATISTICS
+            STORAGE (INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+            PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+            BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+            TABLESPACE "USERS" ENABLE;
+--------------------------------------------------------
+--  Constraints for Table GROUPS
+--------------------------------------------------------
+
+ALTER TABLE "GROUPS"
+    MODIFY ("ID" NOT NULL ENABLE);
+ALTER TABLE "GROUPS"
+    ADD CONSTRAINT "GROUPS_PK" PRIMARY KEY ("ID")
+        USING INDEX PCTFREE 10 INITRANS 2 MAXTRANS 255 COMPUTE STATISTICS
+            STORAGE (INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+            PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+            BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+            TABLESPACE "USERS" ENABLE;
+--------------------------------------------------------
+--  Ref Constraints for Table STUDENTS
+--------------------------------------------------------
+
+ALTER TABLE "STUDENTS"
+    ADD CONSTRAINT "FK_GROUP_ID" FOREIGN KEY ("GROUP_ID")
+        REFERENCES "GROUPS" ("ID") ENABLE;
+
+
